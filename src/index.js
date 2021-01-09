@@ -15,25 +15,25 @@ const movieLikesByMovieId = new Map()
 
 io.on('connection', (socket) => {
   socketsById.set(socket.id, socket)
-
+  
   socket.on('movie.like', movieId => {
     const movieLikes = getMovieLikes(movieId) 
-    
+
     movieLikes.add(socket.id)
-
     setMovieLikes(movieId, movieLikes)
-
+    
     const [matchedMovieId] = getMatches()
-
+    
     if (matchedMovieId) {
       broadcastMatch(matchedMovieId)
     }
   });
+
+  socket.on('disconnect', () => {
+    deleteUserIdFromLikes(socket.id)
+  })
 });
 
-io.on('disconnect', (socket) => {
-  deleteUserIdFromLikes(socket.id)
-});
 
 function deleteUserIdFromLikes(userId) {
   socketsById.delete(userId)
@@ -44,7 +44,14 @@ function deleteUserIdFromLikes(userId) {
 }
 
 function getMatches() {
-  return ['la cenicienta']
+  const numberOfParticipants = socketsById.size
+  if (numberOfParticipants === 1) return []
+
+  for (const [movieId, usersIdLiked] of movieLikesByMovieId.entries()) {
+    if (usersIdLiked.size === numberOfParticipants) return [movieId]
+  }
+
+  return []
 }
 
 function getMovieLikes(movieId) {
