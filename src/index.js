@@ -22,18 +22,23 @@ io.on('connection', (socket) => {
     movieLikes.add(socket.id)
     setMovieLikes(movieId, movieLikes)
     
-    const [matchedMovieId] = getMatches()
-    
-    if (matchedMovieId) {
-      broadcastMatch(matchedMovieId)
-    }
+    notifyMatches()
   });
 
   socket.on('disconnect', () => {
     deleteUserIdFromLikes(socket.id)
+    notifyMatches()
   })
 });
 
+
+function notifyMatches() {
+   const [matchedMovieId] = getMatches()
+    
+  if (matchedMovieId) {
+    broadcastMatch(matchedMovieId)
+  }
+}
 
 function deleteUserIdFromLikes(userId) {
   socketsById.delete(userId)
