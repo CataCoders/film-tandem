@@ -21,12 +21,12 @@ const providerIdsByName = {
 
 const socketsById = new Map()
 const movieLikesByMovieId = new Map()
-let moviesList;
+
+let currentPage = 1
 
 io.on('connection', async socket => {
   socketsById.set(socket.id, socket)
-  moviesList = await discoverMovies()
-  
+
   socket.on('movie.like', movieId => {
     const movieLikes = getMovieLikes(movieId) 
 
@@ -36,6 +36,11 @@ io.on('connection', async socket => {
     notifyMatches()
   });
 
+
+  socket.on('movie.dislike', movieId => {
+    sendNewMoviesPage()
+  })
+
   socket.on('disconnect', () => {
     deleteUserIdFromLikes(socket.id)
     notifyMatches()
@@ -43,8 +48,7 @@ io.on('connection', async socket => {
 });
 
 
-const discoverMovies = async () => {
-  // Equivalant to { query: title }
+const discoverMoviesPage = async pageNumber => {
   const parameters = {
     ott_region: 'ES',
     with_ott_providers: getOttProvidersByNames(
@@ -52,15 +56,12 @@ const discoverMovies = async () => {
       'hbo',
       'prime_video'
     ),
-    page: 1
-//    with_watch_providers: 'netflix',
-//    watch_region: 'CA',
-//    page: pageNum 
+    page: pageNumber
   }
-  const { results, ...rest } = await moviedb.discoverMovie(parameters)
   
-  return results
-    .map(formatMovieResult)
+  const { results } = await moviedb.discoverMovie(parameters)
+  
+  return results.map(formatMovieResult)
 }
 
 function formatMovieResult ({ id, title, poster_path }) {
@@ -110,7 +111,9 @@ function getMatches() {
   return []
 }
 
-function sendMovieList(movies) {
+async function sendNewMoviesPage () {
+  const movies = await discoverMoviesPage(currentPage++)
+
   for (const targetSocket of socketsById.values()) {    
     targetSocket.emit('movie.list', JSON.stringify(movies));
   }
