@@ -4,17 +4,28 @@ const app = require('express')();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const port = process.env.SERVER_PORT || 3000;
+const { MovieDb } = require('moviedb-promise')
+const moviedb = new MovieDb(process.env.MOVIEDB_API_KEY)
 
 app.get('/', (req, res) => {
     const htmlFilePath = path.join(__dirname, '../public/index.html')
     res.sendFile(htmlFilePath);
 });
 
+const providerIdsByName = {
+  netflix: '8',
+  prime_video: '119',
+  hbo: '118',
+  disney_plus: '337'
+}
+
 const socketsById = new Map()
 const movieLikesByMovieId = new Map()
+let moviesList;
 
-io.on('connection', (socket) => {
+io.on('connection', async socket => {
   socketsById.set(socket.id, socket)
+  moviesList = await discoverMovies()
   
   socket.on('movie.like', movieId => {
     const movieLikes = getMovieLikes(movieId) 
@@ -31,6 +42,46 @@ io.on('connection', (socket) => {
   })
 });
 
+
+const discoverMovies = async () => {
+  // Equivalant to { query: title }
+  const parameters = {
+    ott_region: 'ES',
+    with_ott_providers: getOttProvidersByNames(
+      'netflix',
+      'hbo',
+      'prime_video'
+    ),
+    page: 1
+//    with_watch_providers: 'netflix',
+//    watch_region: 'CA',
+//    page: pageNum 
+  }
+  const { results, ...rest } = await moviedb.discoverMovie(parameters)
+  
+  return results
+    .map(formatMovieResult)
+}
+
+function formatMovieResult ({ id, title, poster_path }) {
+  return {
+    id,
+    title,
+    posterUrl: getPosterUrlFormPath(poster_path)
+  }
+}
+
+function getPosterUrlFormPath (path, width = 220, height = 330) {
+  return `https://www.themoviedb.org/t/p/w${width}_and_h${height}_face${path}`
+}
+
+function getOttProvidersByNames (...providerNames) {
+  return providerNames
+    .map(
+      providerName => providerIdsByName[providerName]
+    )
+    .join('|')
+}
 
 function notifyMatches() {
    const [matchedMovieId] = getMatches()
@@ -57,6 +108,12 @@ function getMatches() {
   }
 
   return []
+}
+
+function sendMovieList(movies) {
+  for (const targetSocket of socketsById.values()) {    
+    targetSocket.emit('movie.list', JSON.stringify(movies));
+  }
 }
 
 function getMovieLikes(movieId) {
