@@ -1,3 +1,12 @@
+// 
+//   ____  _____ _____ _    ____ _____ ___  ____    _____ _   _ ___ ____    ____  _     ____  _ 
+//  |  _ \| ____|  ___/ \  / ___|_   _/ _ \|  _ \  |_   _| | | |_ _/ ___|  |  _ \| |   / ___|| |
+//  | |_) |  _| | |_ / _ \| |     | || | | | |_) |   | | | |_| || |\___ \  | |_) | |   \___ \| |
+//  |  _ <| |___|  _/ ___ \ |___  | || |_| |  _ <    | | |  _  || | ___) | |  __/| |___ ___) |_|
+//  |_| \_\_____|_|/_/   \_\____| |_| \___/|_| \_\   |_| |_| |_|___|____/  |_|   |_____|____/(_)
+//                                                                                              
+// 
+
 const path = require('path')
 
 const app = require('express')();
@@ -140,7 +149,13 @@ function notifyMatches() {
    const [matchedMovieId] = getMatches()
     
   if (matchedMovieId) {
-    broadcastMatch(matchedMovieId)
+    const matchedMovieData = fetchedMovies.find(
+      ({ id }) => id === matchedMovieId
+    )
+
+    broadcastMatch(
+      JSON.stringify(matchedMovieData)
+    )
   }
 }
 
