@@ -27,6 +27,8 @@ let currentPage = 1
 io.on('connection', async socket => {
   socketsById.set(socket.id, socket)
 
+  sendNewMoviesPage()
+
   socket.on('movie.like', movieId => {
     const movieLikes = getMovieLikes(movieId) 
 
@@ -38,7 +40,6 @@ io.on('connection', async socket => {
 
 
   socket.on('movie.dislike', movieId => {
-    sendNewMoviesPage()
   })
 
   socket.on('disconnect', () => {

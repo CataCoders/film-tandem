@@ -63,21 +63,56 @@
       const movieListEl = document.getElementById("movie-list");
       const likeButton = document.getElementById("like");
       const dislikeButton = document.getElementById("dislike");
+      const movies = [];
+
+      class Movie {
+        constructor(data, rootNode) {
+          this.data = data;
+          this.rootNode = rootNode;
+          this.el = null;
+          this._initializeElement();
+        }
+
+        _initializeElement() {
+          const { id, posterUrl } = this.data
+          
+          this.el = document.createElement("img");
+          this.el.setAttribute('data-movieId', id);
+          this.el.src = posterUrl;
+        }
+        get id() {
+          return this.data.id;
+        }
+
+        delete() {
+          this.rootNode.removeChild(this.el);
+        }
+
+        render() {
+          this.rootNode.insertBefore(this.el, this.rootNode.firstChild);
+        }
+      }
 
       dislikeButton.addEventListener("click", function (e) {
-        socket.emit("movie.dislike", prompt());
+        const movie = movies.shift();
+        movie.delete();
+
+        socket.emit("movie.dislike", movie.id);
       });
 
       likeButton.addEventListener("click", function (e) {
-        socket.emit("movie.like", prompt());
+        const movie = movies.shift();
+        movie.delete();
+
+        socket.emit("movie.like", movie.id);
       });
 
       function renderNewMovies(newMovies) {
         for (const movie of newMovies) {
-          const movieElement = document.createElement("img");
-          movieElement.src = movie.posterUrl;
+          const myMovie = new Movie(movie, movieListEl);
+          myMovie.render();
 
-          movieListEl.appendChild(movieElement);
+          movies.push(myMovie);
         }
       }
 
