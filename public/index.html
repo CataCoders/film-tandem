@@ -3,51 +3,92 @@
   <head>
     <title>Socket.IO chat</title>
     <style>
-      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      * {
+        box-sizing: border-box;
+      }
+
+      *::after {
+        box-sizing: border-box;
+      }
+
+      *::before {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+      }
+
+      .app {
+        width: 100vw;
+        height: 100vh;
+
+        display: flex;
+        flex-direction: column;
+      }
+
+      .movie-stack {
+        position: relative;
+
+        flex-grow: 1;
+      }
+
+      .movie-stack > img {
+        position: absolute;
+        height: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+      }
     </style>
   </head>
   <body>
-    <button id="dislike">Dislike</button>
-    <button id="like">Like</button>
- 
-    <div id="movie-list"></div>
+    <main class="app">
+      <div class="movie-stack" id="movie-list"></div>
+      
+      <div class="swipe-buttons">
+        <button id="dislike">Dislike</button>
+        <button id="like">Like</button>
+      </div>
+    </main>
+
     <script src="/socket.io/socket.io.js"></script>
 
     <script>
       var socket = io();
 
-      var messages = document.getElementById('messages');
-      var form = document.getElementById('form');
-      const movieListEl = document.getElementById('movie-list')
-      const likeButton = document.getElementById('like');
-      const dislikeButton = document.getElementById('dislike');
+      var messages = document.getElementById("messages");
+      var form = document.getElementById("form");
+      const movieListEl = document.getElementById("movie-list");
+      const likeButton = document.getElementById("like");
+      const dislikeButton = document.getElementById("dislike");
 
-      dislikeButton.addEventListener('click', function(e) {
-        socket.emit('movie.dislike', prompt())
+      dislikeButton.addEventListener("click", function (e) {
+        socket.emit("movie.dislike", prompt());
       });
 
-     likeButton.addEventListener('click', function(e) {
-        socket.emit('movie.like', prompt());
+      likeButton.addEventListener("click", function (e) {
+        socket.emit("movie.like", prompt());
       });
 
-      function renderNewMovies (newMovies) {
+      function renderNewMovies(newMovies) {
         for (const movie of newMovies) {
-          const movieElement = document.createElement('img')
-          movieElement.src = movie.posterUrl
+          const movieElement = document.createElement("img");
+          movieElement.src = movie.posterUrl;
 
-          movieListEl.appendChild(movieElement)
+          movieListEl.appendChild(movieElement);
         }
       }
 
-      socket.on('movie.list', function(movieListSerialized) {
-          const newMovieList = JSON.parse(movieListSerialized)
-          renderNewMovies(newMovieList)
+      socket.on("movie.list", function (movieListSerialized) {
+        const newMovieList = JSON.parse(movieListSerialized);
+        renderNewMovies(newMovieList);
       });
 
-      socket.on('movie.match', function(movieId) {
-          alert('its a match: ' + movieId)
+      socket.on("movie.match", function (movieId) {
+        alert("its a match: " + movieId);
       });
     </script>
   </body>
 </html>
-
