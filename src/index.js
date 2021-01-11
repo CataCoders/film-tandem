@@ -22,12 +22,18 @@ const providerIdsByName = {
 const socketsById = new Map()
 const movieLikesByMovieId = new Map()
 
-let currentPage = 1
+let currentTMDBPage = 1
+
+let fetchedMovies = []
 
 io.on('connection', async socket => {
   socketsById.set(socket.id, socket)
 
-  sendNewMoviesPage()
+  if (fetchedMovies.length === 0) {
+    await fetchNewMoviesPage()
+  }
+  
+  await sendAllMoviesToClient(socket.id)
 
   socket.on('movie.like', movieId => {
     const movieLikes = getMovieLikes(movieId) 
@@ -112,12 +118,19 @@ function getMatches() {
   return []
 }
 
-async function sendNewMoviesPage () {
-  const movies = await discoverMoviesPage(currentPage++)
+async function fetchNewMoviesPage () {
+  const newMovies = await discoverMoviesPage(currentTMDBPage++)
 
-  for (const targetSocket of socketsById.values()) {    
-    targetSocket.emit('movie.list', JSON.stringify(movies));
-  }
+  fetchedMovies = [
+    ...fetchedMovies,
+    ...newMovies
+  ]
+}
+
+function sendAllMoviesToClient (clientId) {
+  socketsById
+    .get(clientId)
+    .emit('movie.list', JSON.stringify(fetchedMovies))
 }
 
 function getMovieLikes(movieId) {
