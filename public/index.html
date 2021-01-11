@@ -88,8 +88,12 @@
           this.rootNode.removeChild(this.el);
         }
 
-        render() {
+        prepend() {
           this.rootNode.insertBefore(this.el, this.rootNode.firstChild);
+        }
+
+        append() {
+          this.rootNode.appendChild(this.el);
         }
       }
 
@@ -110,10 +114,17 @@
       function renderNewMovies(newMovies) {
         for (const movie of newMovies) {
           const myMovie = new Movie(movie, movieListEl);
-          myMovie.render();
+          myMovie.prepend();
 
           movies.push(myMovie);
         }
+      }
+
+      function renderMatch(movieData) {
+        likeButton.disabled = true;
+        dislikeButton.disabled = true;
+        const myMovie = new Movie(movieData, movieListEl);
+        myMovie.append();
       }
 
       socket.on("movie.list", function (movieListSerialized) {
@@ -121,8 +132,8 @@
         renderNewMovies(newMovieList);
       });
 
-      socket.on("movie.match", function (movieId) {
-        alert("its a match: " + movieId);
+      socket.on("movie.match", function (movieData) {
+        renderMatch(JSON.parse(movieData));
       });
     </script>
   </body>
