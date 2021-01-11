@@ -20,17 +20,23 @@ const providerIdsByName = {
 }
 
 const socketsById = new Map()
+const visitedMoviesBySocketId = new Map()
 const movieLikesByMovieId = new Map()
 
 let currentTMDBPage = 1
-
 let fetchedMovies = []
 
 io.on('connection', async socket => {
   socketsById.set(socket.id, socket)
+  visitedMoviesBySocketId.set(socket.id, 0)
 
   if (fetchedMovies.length === 0) {
-    await fetchNewMoviesPage()
+    const movies = await fetchNewMoviesPage()
+
+    fetchedMovies = [
+      ...fetchedMovies,
+      ...movies
+    ]
   }
   
   await sendAllMoviesToClient(socket.id)
@@ -40,16 +46,17 @@ io.on('connection', async socket => {
 
     movieLikes.add(socket.id)
     setMovieLikes(movieId, movieLikes)
+    clientVisitedMovie(socket.id, movieId)
     
     notifyMatches()
   });
 
-
   socket.on('movie.dislike', movieId => {
+    clientVisitedMovie(socket.id, movieId)
   })
 
   socket.on('disconnect', () => {
-    deleteUserIdFromLikes(socket.id)
+    clientClear(socket.id)
     notifyMatches()
   })
 });
@@ -69,6 +76,44 @@ const discoverMoviesPage = async pageNumber => {
   const { results } = await moviedb.discoverMovie(parameters)
   
   return results.map(formatMovieResult)
+}
+
+async function clientVisitedMovie(clientId, movieId) {
+  increaseVisitedMovieCounter(clientId)
+
+  if (shouldFetchMovies(clientId)) {
+    const moreMovies = await fetchNewMoviesPage()
+    fetchedMovies = [
+      ...fetchedMovies,
+      ...moreMovies
+    ]
+
+    sendMoviesToAll(moreMovies)
+  }
+}
+
+function sendMoviesToAll(movies) {
+  for (const targetSocket of socketsById.values()) {    
+    targetSocket.emit('movie.list', JSON.stringify(movies));
+  }
+}
+
+function shouldFetchMovies(clientId){
+  return visitedMoviesBySocketId.get(clientId) % 18 === 0
+}
+
+function clientClear(clientId) {
+  deleteUserIdFromLikes(clientId)
+  deleteMoviesVisitedByClientId(clientId)
+}
+
+function deleteMoviesVisitedByClientId(clientId) {
+  visitedMoviesBySocketId.delete(clientId)
+}
+
+function increaseVisitedMovieCounter(clientId) {
+  const numberOfMovies = visitedMoviesBySocketId.get(clientId)
+  visitedMoviesBySocketId.set(clientId, numberOfMovies + 1)
 }
 
 function formatMovieResult ({ id, title, poster_path }) {
@@ -119,12 +164,7 @@ function getMatches() {
 }
 
 async function fetchNewMoviesPage () {
-  const newMovies = await discoverMoviesPage(currentTMDBPage++)
-
-  fetchedMovies = [
-    ...fetchedMovies,
-    ...newMovies
-  ]
+  return discoverMoviesPage(currentTMDBPage++)
 }
 
 function sendAllMoviesToClient (clientId) {
