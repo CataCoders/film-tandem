@@ -77,7 +77,8 @@ const discoverMoviesPage = async pageNumber => {
     with_ott_providers: getOttProvidersByNames(
       'netflix',
       'hbo',
-      'prime_video'
+      'prime_video',
+      'disney_plus'
     ),
     page: pageNumber
   }
