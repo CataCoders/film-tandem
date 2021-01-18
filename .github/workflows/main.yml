@@ -16,6 +16,3 @@ jobs:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: film-tandem
           heroku_email: david.asensio@icloud.com
-        env:
-          SERVER_PORT: ${{secrets.SERVER_PORT}}
-          MOVIEDB_API_KEY: ${{secrets.MOVIEDB_API_KEY}}
