@@ -10,15 +10,16 @@
 const path = require('path')
 
 const app = require('express')()
-const http = require('http').Server(app)
+const http = require('http').Server(app)// eslint-disable-line new-cap
 const io = require('socket.io')(http)
+const {MovieDb} = require('moviedb-promise')
+
 const port = process.env.PORT || 3000
-const { MovieDb } = require('moviedb-promise')
 const moviedb = new MovieDb(process.env.MOVIEDB_API_KEY)
 
-app.get('/', (req, res) => {
+app.get('/', (request, response) => {
   const htmlFilePath = path.join(__dirname, '../public/index.html')
-  res.sendFile(htmlFilePath)
+  response.sendFile(htmlFilePath)
 })
 
 const providerIdsByName = {
@@ -55,13 +56,13 @@ io.on('connection', async socket => {
 
     movieLikes.add(socket.id)
     setMovieLikes(movieId, movieLikes)
-    clientVisitedMovie(socket.id, movieId)
+    clientVisitedMovie(socket.id)
 
     notifyMatches()
   })
 
-  socket.on('movie.dislike', movieId => {
-    clientVisitedMovie(socket.id, movieId)
+  socket.on('movie.dislike', () => {
+    clientVisitedMovie(socket.id)
   })
 
   socket.on('disconnect', () => {
@@ -82,12 +83,14 @@ const discoverMoviesPage = async pageNumber => {
     page: pageNumber
   }
 
-  const { results } = await moviedb.discoverMovie(parameters)
+  const {results} = await moviedb.discoverMovie(parameters)
 
-  return results.map(formatMovieResult)
+  return results.map(
+    movieResult => formatMovieResult(movieResult)
+  )
 }
 
-async function clientVisitedMovie (clientId, movieId) {
+async function clientVisitedMovie(clientId) {
   increaseVisitedMovieCounter(clientId)
 
   if (shouldFetchMovies(clientId)) {
@@ -101,31 +104,31 @@ async function clientVisitedMovie (clientId, movieId) {
   }
 }
 
-function sendMoviesToAll (movies) {
+function sendMoviesToAll(movies) {
   for (const targetSocket of socketsById.values()) {
     targetSocket.emit('movie.list', JSON.stringify(movies))
   }
 }
 
-function shouldFetchMovies (clientId) {
+function shouldFetchMovies(clientId) {
   return visitedMoviesBySocketId.get(clientId) % 18 === 0
 }
 
-function clientClear (clientId) {
+function clientClear(clientId) {
   deleteUserIdFromLikes(clientId)
   deleteMoviesVisitedByClientId(clientId)
 }
 
-function deleteMoviesVisitedByClientId (clientId) {
+function deleteMoviesVisitedByClientId(clientId) {
   visitedMoviesBySocketId.delete(clientId)
 }
 
-function increaseVisitedMovieCounter (clientId) {
+function increaseVisitedMovieCounter(clientId) {
   const numberOfMovies = visitedMoviesBySocketId.get(clientId)
   visitedMoviesBySocketId.set(clientId, numberOfMovies + 1)
 }
 
-function formatMovieResult ({ id, title, posterPath }) {
+function formatMovieResult({id, title, posterPath}) {
   return {
     id,
     title,
@@ -133,11 +136,11 @@ function formatMovieResult ({ id, title, posterPath }) {
   }
 }
 
-function getPosterUrlFormPath (path, width = 220, height = 330) {
+function getPosterUrlFormPath(path, width = 220, height = 330) {
   return `https://www.themoviedb.org/t/p/w${width}_and_h${height}_face${path}`
 }
 
-function getOttProvidersByNames (...providerNames) {
+function getOttProvidersByNames(...providerNames) {
   return providerNames
     .map(
       providerName => providerIdsByName[providerName]
@@ -145,12 +148,12 @@ function getOttProvidersByNames (...providerNames) {
     .join('|')
 }
 
-function notifyMatches () {
+function notifyMatches() {
   const [matchedMovieId] = getMatches()
 
   if (matchedMovieId) {
     const matchedMovieData = fetchedMovies.find(
-      ({ id }) => id === matchedMovieId
+      ({id}) => id === matchedMovieId
     )
 
     broadcastMatch(
@@ -159,7 +162,7 @@ function notifyMatches () {
   }
 }
 
-function deleteUserIdFromLikes (userId) {
+function deleteUserIdFromLikes(userId) {
   socketsById.delete(userId)
 
   for (const usersIdLiked of movieLikesByMovieId.values()) {
@@ -167,38 +170,44 @@ function deleteUserIdFromLikes (userId) {
   }
 }
 
-function getMatches () {
+function getMatches() {
   const numberOfParticipants = socketsById.size
-  if (numberOfParticipants === 1) return []
+  if (numberOfParticipants === 1) {
+    return []
+  }
 
   for (const [movieId, usersIdLiked] of movieLikesByMovieId.entries()) {
-    if (usersIdLiked.size === numberOfParticipants) return [movieId]
+    if (usersIdLiked.size === numberOfParticipants) {
+      return [movieId]
+    }
   }
 
   return []
 }
 
-async function fetchNewMoviesPage () {
+async function fetchNewMoviesPage() {
   return discoverMoviesPage(currentTMDBPage++)
 }
 
-function sendAllMoviesToClient (clientId) {
+function sendAllMoviesToClient(clientId) {
   socketsById
     .get(clientId)
     .emit('movie.list', JSON.stringify(fetchedMovies))
 }
 
-function getMovieLikes (movieId) {
-  if (!movieLikesByMovieId.has(movieId)) return new Set()
+function getMovieLikes(movieId) {
+  if (!movieLikesByMovieId.has(movieId)) {
+    return new Set()
+  }
 
   return movieLikesByMovieId.get(movieId)
 }
 
-function setMovieLikes (movieId, movieLikes) {
+function setMovieLikes(movieId, movieLikes) {
   movieLikesByMovieId.set(movieId, movieLikes)
 }
 
-function broadcastMatch (movieId) {
+function broadcastMatch(movieId) {
   for (const targetSocket of socketsById.values()) {
     targetSocket.emit('movie.match', movieId)
   }

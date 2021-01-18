@@ -6,13 +6,13 @@
   "scripts": {
     "start": "node src/index",
     "dev": "dotenv -- nodemon src/index",
-    "lint": "standard",
-    "lint:fix": "standard --fix"
+    "lint": "xo --reporter --no-semicolon",
+    "lint:fix": "yarn lint --fix"
   },
   "devDependencies": {
     "jest": "26.6.3",
     "nodemon": "^2.0.7",
-    "standard": "^16.0.3"
+    "xo": "^0.37.1"
   },
   "volta": {
     "node": "14.15.1"
