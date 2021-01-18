@@ -1,0 +1,21 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: akhileshns/heroku-deploy@v3.8.9
+        with:
+          region: eu
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: FilmTandem
+          heroku_email: david.asensio@icloud.com
+        env:
+          SERVER_PORT: ${{secrets.SERVER_PORT}}
+          MOVIEDB_API_KEY: ${{secrets.MOVIEDB_API_KEY}}
