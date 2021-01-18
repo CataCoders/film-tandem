@@ -12,7 +12,7 @@ const path = require('path')
 const app = require('express')();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
-const port = process.env.SERVER_PORT || 3000;
+const port = process.env.PORT || 3000;
 const { MovieDb } = require('moviedb-promise')
 const moviedb = new MovieDb(process.env.MOVIEDB_API_KEY)
 
