@@ -1,0 +1,9 @@
+{
+  "space": true,
+  "rules": {
+    "camelcase": [
+      "error",
+      { "properties": "never" }
+    ]
+  }
+}
