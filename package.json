@@ -5,11 +5,14 @@
   "license": "MIT",
   "scripts": {
     "start": "node src/index",
-    "dev": "dotenv -- nodemon src/index"
+    "dev": "dotenv -- nodemon src/index",
+    "lint": "standard",
+    "lint:fix": "standard --fix"
   },
   "devDependencies": {
     "jest": "26.6.3",
-    "nodemon": "^2.0.7"
+    "nodemon": "^2.0.7",
+    "standard": "^16.0.3"
   },
   "volta": {
     "node": "14.15.1"

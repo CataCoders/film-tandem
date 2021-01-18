@@ -1,25 +1,25 @@
-// 
-//   ____  _____ _____ _    ____ _____ ___  ____    _____ _   _ ___ ____    ____  _     ____  _ 
+//
+//   ____  _____ _____ _    ____ _____ ___  ____    _____ _   _ ___ ____    ____  _     ____  _
 //  |  _ \| ____|  ___/ \  / ___|_   _/ _ \|  _ \  |_   _| | | |_ _/ ___|  |  _ \| |   / ___|| |
 //  | |_) |  _| | |_ / _ \| |     | || | | | |_) |   | | | |_| || |\___ \  | |_) | |   \___ \| |
 //  |  _ <| |___|  _/ ___ \ |___  | || |_| |  _ <    | | |  _  || | ___) | |  __/| |___ ___) |_|
 //  |_| \_\_____|_|/_/   \_\____| |_| \___/|_| \_\   |_| |_| |_|___|____/  |_|   |_____|____/(_)
-//                                                                                              
-// 
+//
+//
 
 const path = require('path')
 
-const app = require('express')();
-const http = require('http').Server(app);
-const io = require('socket.io')(http);
-const port = process.env.PORT || 3000;
+const app = require('express')()
+const http = require('http').Server(app)
+const io = require('socket.io')(http)
+const port = process.env.PORT || 3000
 const { MovieDb } = require('moviedb-promise')
 const moviedb = new MovieDb(process.env.MOVIEDB_API_KEY)
 
 app.get('/', (req, res) => {
-    const htmlFilePath = path.join(__dirname, '../public/index.html')
-    res.sendFile(htmlFilePath);
-});
+  const htmlFilePath = path.join(__dirname, '../public/index.html')
+  res.sendFile(htmlFilePath)
+})
 
 const providerIdsByName = {
   netflix: '8',
@@ -47,18 +47,18 @@ io.on('connection', async socket => {
       ...movies
     ]
   }
-  
+
   await sendAllMoviesToClient(socket.id)
 
   socket.on('movie.like', movieId => {
-    const movieLikes = getMovieLikes(movieId) 
+    const movieLikes = getMovieLikes(movieId)
 
     movieLikes.add(socket.id)
     setMovieLikes(movieId, movieLikes)
     clientVisitedMovie(socket.id, movieId)
-    
+
     notifyMatches()
-  });
+  })
 
   socket.on('movie.dislike', movieId => {
     clientVisitedMovie(socket.id, movieId)
@@ -68,8 +68,7 @@ io.on('connection', async socket => {
     clientClear(socket.id)
     notifyMatches()
   })
-});
-
+})
 
 const discoverMoviesPage = async pageNumber => {
   const parameters = {
@@ -82,13 +81,13 @@ const discoverMoviesPage = async pageNumber => {
     ),
     page: pageNumber
   }
-  
+
   const { results } = await moviedb.discoverMovie(parameters)
-  
+
   return results.map(formatMovieResult)
 }
 
-async function clientVisitedMovie(clientId, movieId) {
+async function clientVisitedMovie (clientId, movieId) {
   increaseVisitedMovieCounter(clientId)
 
   if (shouldFetchMovies(clientId)) {
@@ -102,35 +101,35 @@ async function clientVisitedMovie(clientId, movieId) {
   }
 }
 
-function sendMoviesToAll(movies) {
-  for (const targetSocket of socketsById.values()) {    
-    targetSocket.emit('movie.list', JSON.stringify(movies));
+function sendMoviesToAll (movies) {
+  for (const targetSocket of socketsById.values()) {
+    targetSocket.emit('movie.list', JSON.stringify(movies))
   }
 }
 
-function shouldFetchMovies(clientId){
+function shouldFetchMovies (clientId) {
   return visitedMoviesBySocketId.get(clientId) % 18 === 0
 }
 
-function clientClear(clientId) {
+function clientClear (clientId) {
   deleteUserIdFromLikes(clientId)
   deleteMoviesVisitedByClientId(clientId)
 }
 
-function deleteMoviesVisitedByClientId(clientId) {
+function deleteMoviesVisitedByClientId (clientId) {
   visitedMoviesBySocketId.delete(clientId)
 }
 
-function increaseVisitedMovieCounter(clientId) {
+function increaseVisitedMovieCounter (clientId) {
   const numberOfMovies = visitedMoviesBySocketId.get(clientId)
   visitedMoviesBySocketId.set(clientId, numberOfMovies + 1)
 }
 
-function formatMovieResult ({ id, title, poster_path }) {
+function formatMovieResult ({ id, title, posterPath }) {
   return {
     id,
     title,
-    posterUrl: getPosterUrlFormPath(poster_path)
+    posterUrl: getPosterUrlFormPath(posterPath)
   }
 }
 
@@ -146,9 +145,9 @@ function getOttProvidersByNames (...providerNames) {
     .join('|')
 }
 
-function notifyMatches() {
-   const [matchedMovieId] = getMatches()
-    
+function notifyMatches () {
+  const [matchedMovieId] = getMatches()
+
   if (matchedMovieId) {
     const matchedMovieData = fetchedMovies.find(
       ({ id }) => id === matchedMovieId
@@ -160,7 +159,7 @@ function notifyMatches() {
   }
 }
 
-function deleteUserIdFromLikes(userId) {
+function deleteUserIdFromLikes (userId) {
   socketsById.delete(userId)
 
   for (const usersIdLiked of movieLikesByMovieId.values()) {
@@ -168,7 +167,7 @@ function deleteUserIdFromLikes(userId) {
   }
 }
 
-function getMatches() {
+function getMatches () {
   const numberOfParticipants = socketsById.size
   if (numberOfParticipants === 1) return []
 
@@ -189,22 +188,22 @@ function sendAllMoviesToClient (clientId) {
     .emit('movie.list', JSON.stringify(fetchedMovies))
 }
 
-function getMovieLikes(movieId) {
+function getMovieLikes (movieId) {
   if (!movieLikesByMovieId.has(movieId)) return new Set()
 
   return movieLikesByMovieId.get(movieId)
 }
 
-function setMovieLikes(movieId, movieLikes) {
+function setMovieLikes (movieId, movieLikes) {
   movieLikesByMovieId.set(movieId, movieLikes)
 }
 
 function broadcastMatch (movieId) {
-  for (const targetSocket of socketsById.values()) {    
-    targetSocket.emit('movie.match', movieId);
+  for (const targetSocket of socketsById.values()) {
+    targetSocket.emit('movie.match', movieId)
   }
 }
 
 http.listen(port, () => {
-  console.log(`Socket.IO server running at http://localhost:${port}/`);
-});
+  console.log(`Socket.IO server running at http://localhost:${port}/`)
+})
