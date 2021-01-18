@@ -6,9 +6,6 @@ jobs:
   lint-and-fix:
     name: Lint and fix
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -24,6 +21,6 @@ jobs:
       - name: Run linters
         uses: wearerequired/lint-action@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{secrets.GITHUB_TOKEN}}
           xo: true
           auto_fix: true
